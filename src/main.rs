@@ -1,6 +1,8 @@
 use actix_web::{guard, web, App, HttpResponse, HttpServer};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+
 mod config;
+mod passman;
 mod users;
 
 async fn graphql_playground() -> HttpResponse {
@@ -19,6 +21,11 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/")
                     .guard(guard::Post())
                     .to(users::handler::index),
+            )
+            .service(
+                web::resource("/passman")
+                    .guard(guard::Post())
+                    .to(passman::handler::index),
             )
             .service(
                 web::resource("/")
