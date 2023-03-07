@@ -1,4 +1,4 @@
-use actix_web::{guard, web, App, HttpResponse, HttpServer};
+use actix_web::{guard, middleware::Logger, web, App, HttpResponse, HttpServer};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 
 mod config;
@@ -14,9 +14,14 @@ async fn graphql_playground() -> HttpResponse {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     config::init::init().await;
+    std::env::set_var("RUST_LOG", "info");
+    std::env::set_var("RUST_BACKTRACE", "1");
+    env_logger::init();
 
     HttpServer::new(move || {
+        let logger = Logger::default();
         App::new()
+            .wrap(logger)
             .service(
                 web::resource("/")
                     .guard(guard::Post())

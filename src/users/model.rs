@@ -1,4 +1,3 @@
-//Owners logiuse dotenv::dotenv;
 use super::schema::{Owner, Project};
 use crate::config::mongo::get_col;
 use futures::TryStreamExt;
