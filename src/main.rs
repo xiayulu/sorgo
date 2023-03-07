@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{guard, middleware::Logger, web, App, HttpResponse, HttpServer};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 
@@ -22,6 +23,7 @@ async fn main() -> std::io::Result<()> {
         let logger = Logger::default();
         App::new()
             .wrap(logger)
+            .wrap(Cors::permissive())
             .service(
                 web::resource("/")
                     .guard(guard::Post())
