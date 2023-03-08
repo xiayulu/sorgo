@@ -19,28 +19,19 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_BACKTRACE", "1");
     env_logger::init();
 
+    let host = std::env::var("APP_HOST").unwrap();
+    let port = std::env::var("APP_PORT").unwrap().parse::<u16>().unwrap();
+    log::info!("Server is running at http://{}:{}", host, port);
     HttpServer::new(move || {
         let logger = Logger::default();
-        App::new()
-            .wrap(logger)
-            .wrap(Cors::permissive())
-            .service(
-                web::resource("/")
-                    .guard(guard::Post())
-                    .to(users::handler::index),
-            )
-            .service(
-                web::resource("/passman")
-                    .guard(guard::Post())
-                    .to(passman::handler::index),
-            )
-            .service(
-                web::resource("/")
-                    .guard(guard::Get())
-                    .to(graphql_playground),
-            )
+        App::new().wrap(logger).wrap(Cors::permissive()).service(
+            web::scope("/gql")
+                .configure(users::handler::config)
+                .configure(passman::handler::config)
+                .service(web::resource("").guard(guard::Get()).to(graphql_playground)),
+        )
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind((host, port))?
     .run()
     .await
 }

@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 static INSTANCE: OnceCell<Database> = OnceCell::new();
 
 pub async fn init() {
-    let uri = std::env::var("MONGOURI").unwrap();
+    let uri = std::env::var("MONGO_URI").unwrap();
     let client = Client::with_uri_str(uri)
         .await
         .expect("error connecting to database");

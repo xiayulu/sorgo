@@ -12,5 +12,12 @@ pub async fn init() {
 
 pub fn check() {
     // app envs
-    var("MONGOURI").expect("APP_HOST not in .env");
+    var("APP_HOST").expect("APP_HOST not in .env");
+    var("APP_PORT")
+        .expect("APP_PORT not in .env")
+        .parse::<u16>()
+        .expect("APP_PORT could not parse to u16");
+
+    // database
+    var("MONGO_URI").expect("APP_HOST not in .env");
 }

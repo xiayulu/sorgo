@@ -1,4 +1,5 @@
 use super::schema::{CreateInput, FetchPassword, Password, UpdateInput};
+use actix_web::{guard, web};
 use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 
@@ -40,7 +41,11 @@ impl Mutation {
 }
 
 // http handler
-pub async fn index(req: GraphQLRequest) -> GraphQLResponse {
+async fn index(req: GraphQLRequest) -> GraphQLResponse {
     let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
     schema.execute(req.into_inner()).await.into()
+}
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(web::resource("/passman").guard(guard::Post()).to(index));
 }
