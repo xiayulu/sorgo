@@ -1,9 +1,8 @@
-use std::fmt;
-
 use async_graphql::{Enum, InputObject, SimpleObject};
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum Algo {

@@ -1,11 +1,6 @@
 use super::email;
 use super::model;
-use super::model::auth;
-use super::schema::List;
-use super::schema::SignInInput;
-use super::schema::SigninRes;
-use super::schema::UserQuery;
-use super::schema::{EmailInput, Msg, User};
+use super::schema::{EmailInput, List, Msg, SignInInput, SigninRes, User, UserQuery};
 use super::token::MyClaims;
 use crate::config::redis;
 use actix_web::HttpRequest;
@@ -75,7 +70,7 @@ impl Mutation {
 
 // http handler
 async fn index(gql_req: GraphQLRequest, actix_req: HttpRequest) -> GraphQLResponse {
-    let result = auth(actix_req).await;
+    let result = model::auth(actix_req).await;
     if let Err(_err) = result {
         let mut res = async_graphql::Response::default();
         let err = vec![ServerError::new("error when check token", None)];
