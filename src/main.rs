@@ -3,6 +3,7 @@ use actix_web::{guard, middleware::Logger, web, App, HttpResponse, HttpServer};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 
 mod config;
+mod error;
 mod passman;
 mod users;
 
@@ -28,7 +29,11 @@ async fn main() -> std::io::Result<()> {
             web::scope("/gql")
                 .configure(users::handler::config)
                 .configure(passman::handler::config)
-                .service(web::resource("/").guard(guard::Get()).to(graphql_playground)),
+                .service(
+                    web::resource("/")
+                        .guard(guard::Get())
+                        .to(graphql_playground),
+                ),
         )
     })
     .bind((host, port))?

@@ -1,34 +1,31 @@
-use super::schema::{CreateOwner, CreateProject, FetchOwner, FetchProject, Owner, Project};
-use actix_web::{guard, web};
-use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
-use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
-
+use super::email;
 use super::model;
+use super::schema::SignInInput;
+use super::schema::SigninRes;
+use super::schema::{EmailInput, Msg, User};
+use super::token::Token;
+use crate::config::redis;
+use actix_web::{guard, web};
+use async_graphql::{Context, EmptySubscription, Error, FieldResult, Object, Schema};
+use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 
 pub struct Query;
 
+fn captcha_prefix() -> &'static str {
+    "/user/captcha"
+}
+
 #[Object(extends)]
 impl Query {
-    //owners query
-    async fn owner(&self, _ctx: &Context<'_>, input: FetchOwner) -> FieldResult<Owner> {
-        let owner = model::single_owner(&input._id).await.unwrap();
-        Ok(owner)
-    }
+    async fn send_captcha(&self, _ctx: &Context<'_>, input: EmailInput) -> FieldResult<Msg> {
+        let c = email::get_captcha();
+        // save to redis
+        redis::set_ex(format!("{}/{}", captcha_prefix(), input.email), &c, 60 * 10).await?;
 
-    async fn get_owners(&self, _ctx: &Context<'_>) -> FieldResult<Vec<Owner>> {
-        let owners = model::get_owners().await.unwrap();
-        Ok(owners)
-    }
-
-    //projects query
-    async fn project(&self, _ctx: &Context<'_>, input: FetchProject) -> FieldResult<Project> {
-        let project = model::single_project(&input._id).await.unwrap();
-        Ok(project)
-    }
-
-    async fn get_projects(&self, _ctx: &Context<'_>) -> FieldResult<Vec<Project>> {
-        let projects = model::get_projects().await.unwrap();
-        Ok(projects)
+        email::send_captcha(&c, &input.email)?;
+        Ok(Msg {
+            msg: "ok".to_owned(),
+        })
     }
 }
 
@@ -36,32 +33,28 @@ pub struct Mutation;
 
 #[Object]
 impl Mutation {
-    //owner mutation
-    async fn create_owner(&self, _ctx: &Context<'_>, input: CreateOwner) -> FieldResult<Owner> {
-        let new_owner = Owner {
-            _id: None,
-            email: input.email,
-            name: input.name,
-            phone: input.phone,
-        };
-        let owner = model::create_owner(new_owner).await.unwrap();
-        Ok(owner)
-    }
+    async fn signin(&self, _ctx: &Context<'_>, input: SignInInput) -> FieldResult<SigninRes> {
+        let captcha: String = redis::get(format!("{}/{}", captcha_prefix(), &input.email)).await?;
+        if captcha != input.captcha {
+            return Err(Error::new("邮箱或验证码错误"));
+        }
 
-    async fn create_project(
-        &self,
-        _ctx: &Context<'_>,
-        input: CreateProject,
-    ) -> FieldResult<Project> {
-        let new_project = Project {
-            _id: None,
-            owner_id: input.owner_id,
-            name: input.name,
-            description: input.description,
-            status: input.status,
-        };
-        let project = model::create_project(new_project).await.unwrap();
-        Ok(project)
+        let user = model::signin(&input.email).await?;
+        if user.is_none() {
+            return Err(Error::new("signin failed: null user"));
+        }
+
+        let user = user.unwrap();
+        if user._id.is_none() {
+            return Err(Error::new("signin failed: null _id"));
+        }
+
+        let user_id = &user._id;
+        let token = Token::builder().set_user_id(&user_id.unwrap().to_hex());
+        Ok(SigninRes {
+            user,
+            token: token.create_jwt()?,
+        })
     }
 }
 
@@ -72,5 +65,5 @@ async fn index(req: GraphQLRequest) -> GraphQLResponse {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("").guard(guard::Post()).to(index));
+    cfg.service(web::resource("/users").guard(guard::Post()).to(index));
 }
