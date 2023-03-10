@@ -21,15 +21,34 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct SigninRes {
     pub user: User,
     pub token: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+pub struct Count {
+    pub count: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+pub struct List {
+    pub users: Vec<User>,
+    pub total: [Count; 1],
+}
+
 // simple ok message
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct Msg {
     pub msg: String,
+}
+
+#[derive(InputObject)]
+pub struct UserQuery {
+    pub page: i32,
+    pub page_size: i32,
 }
 
 #[derive(InputObject)]

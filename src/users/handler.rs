@@ -1,8 +1,10 @@
 use super::email;
 use super::model;
 use super::model::auth;
+use super::schema::List;
 use super::schema::SignInInput;
 use super::schema::SigninRes;
+use super::schema::UserQuery;
 use super::schema::{EmailInput, Msg, User};
 use super::token::MyClaims;
 use crate::config::redis;
@@ -34,6 +36,11 @@ impl Query {
     async fn whoami(&self, ctx: &Context<'_>) -> FieldResult<Option<User>> {
         let user_opt = ctx.data_unchecked::<Option<User>>().clone();
         Ok(user_opt)
+    }
+
+    async fn list(&self, _ctx: &Context<'_>, query: UserQuery) -> FieldResult<Option<List>> {
+        let data = model::get_user_list(query).await?;
+        Ok(data)
     }
 }
 
