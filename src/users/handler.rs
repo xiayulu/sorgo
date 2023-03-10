@@ -1,11 +1,14 @@
 use super::email;
 use super::model;
+use super::model::auth;
 use super::schema::SignInInput;
 use super::schema::SigninRes;
 use super::schema::{EmailInput, Msg, User};
-use super::token::Token;
+use super::token::MyClaims;
 use crate::config::redis;
+use actix_web::HttpRequest;
 use actix_web::{guard, web};
+use async_graphql::ServerError;
 use async_graphql::{Context, EmptySubscription, Error, FieldResult, Object, Schema};
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 
@@ -26,6 +29,11 @@ impl Query {
         Ok(Msg {
             msg: "ok".to_owned(),
         })
+    }
+
+    async fn whoami(&self, ctx: &Context<'_>) -> FieldResult<Option<User>> {
+        let user_opt = ctx.data_unchecked::<Option<User>>().clone();
+        Ok(user_opt)
     }
 }
 
@@ -50,7 +58,7 @@ impl Mutation {
         }
 
         let user_id = &user._id;
-        let token = Token::builder().set_user_id(&user_id.unwrap().to_hex());
+        let token = MyClaims::builder().set_user_id(&user_id.unwrap().to_hex());
         Ok(SigninRes {
             user,
             token: token.create_jwt()?,
@@ -59,9 +67,18 @@ impl Mutation {
 }
 
 // http handler
-async fn index(req: GraphQLRequest) -> GraphQLResponse {
-    let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
-    schema.execute(req.into_inner()).await.into()
+async fn index(gql_req: GraphQLRequest, actix_req: HttpRequest) -> GraphQLResponse {
+    let result = auth(actix_req).await;
+    if let Err(_err) = result {
+        let mut res = async_graphql::Response::default();
+        let err = vec![ServerError::new("error when check token", None)];
+        res.errors = err;
+        return res.into();
+    }
+    let schema = Schema::build(Query, Mutation, EmptySubscription)
+        .data(result.unwrap())
+        .finish();
+    schema.execute(gql_req.into_inner()).await.into()
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {

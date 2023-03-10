@@ -1,15 +1,13 @@
+use super::model;
 use super::schema::{CreateInput, FetchPassword, Password, UpdateInput};
 use actix_web::{guard, web};
 use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 
-use super::model;
-
 pub struct Query;
 
 #[Object(extends)]
 impl Query {
-    //owners query
     async fn password(&self, _ctx: &Context<'_>, input: FetchPassword) -> FieldResult<Password> {
         let data = model::password_detail(&input._id).await.unwrap();
         Ok(data)

@@ -3,12 +3,12 @@ use crate::{config::jwt::get_pair, error::Error};
 use jwt_simple::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-pub struct Token {
-    user_id: String,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MyClaims {
+    pub user_id: String,
 }
 
-impl Token {
+impl MyClaims {
     pub fn builder() -> Self {
         Self {
             user_id: String::from(""),
@@ -30,17 +30,15 @@ impl Token {
         })?)
     }
 
-    pub fn verify_jwt(token: &str) -> Result<Token> {
+    pub fn verify_jwt(token: &str) -> Result<Self> {
         let key_pair = get_pair();
         let public_key = key_pair.public_key();
 
-        let claims = public_key
-            .verify_token::<Token>(&token, None)
-            .map_err(|e| {
-                let e = format!("create jwt token failed:{}", e);
-                log::error!("{}", e);
-                Error::Auth
-            })?;
+        let claims = public_key.verify_token::<Self>(&token, None).map_err(|e| {
+            let e = format!("create jwt token failed:{}", e);
+            log::error!("{}", e);
+            Error::Auth
+        })?;
         Ok(claims.custom)
     }
 }
