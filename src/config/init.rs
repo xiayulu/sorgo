@@ -23,7 +23,8 @@ pub fn check() {
         .expect("APP_PORT could not parse to u16");
 
     // database
-    var("MONGO_URI").expect("APP_HOST not in .env");
+    var("MONGO_URI").expect("MONGO_URI not in .env");
+    var("APP_DB").expect("APP_DB not in .env");
 
     // redis
     var("REDIS_URL").expect("REDIS_URL not in .env");

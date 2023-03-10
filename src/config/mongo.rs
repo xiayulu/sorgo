@@ -8,7 +8,7 @@ pub async fn init() {
     let client = Client::with_uri_str(uri)
         .await
         .expect("error connecting to database");
-    let db = client.database("projectMngt");
+    let db = client.database(&std::env::var("APP_DB").unwrap());
 
     INSTANCE.set(db).unwrap();
 }
